@@ -79,11 +79,10 @@ class ChatService(){
         if (currChat.ownerId == ownerId) {
             if (!currChat.isDeleted) {
                 currChat.isDeleted = true
-                val mess = MessagesService().getMessagesOnChat(idChat)
-                    for((index,message) in (mess.withIndex())){
-                        message.isDeleted = true
-                    }
-            } else {
+                //Пометим на удаление сообщения
+                MessagesService().getMessagesOnChat(idChat)
+                    .forEach { it.isDeleted = true }
+          } else {
                 println("Чат с id $idChat уже удален")
             }
         } else {
@@ -94,9 +93,6 @@ class ChatService(){
 }
 
 class MessagesService(){
-    //private var messages = emptyArray<Messages>()
-    //private var lastIdMess: Int = 0
-    //private var chatService = ChatService()
 
     fun getUnreadMessagesCount(idChat: Int, userId: Int): Int { //получить число непрочитанных сообщений внутри чата для ползователя c userId
         return messages.filter { it.idUser!=userId && it.idChat == idChat && !it.isRead && !it.isDeleted}.size
@@ -126,9 +122,9 @@ class MessagesService(){
         }
             val listMessages =
                 messages.filter { it.idChat == idChat && it.id >= fromIdMessage && it.id <= fromIdMessage + count - 1 }
-            for ((index, message) in listMessages.withIndex()) {
-                readMessage(message.id,userId) //с точки зрения скорости работы наверное проще было тут помечать прочитанность
-            }
+                for ((index, message) in listMessages.withIndex()) {
+                    readMessage(message.id,userId) //с точки зрения скорости работы наверное проще было тут помечать прочитанность
+                }
             return listMessages
 
     }
@@ -155,7 +151,10 @@ class MessagesService(){
         }
     }
     fun getMessagesOnChat(idChat: Int): List<Messages> { // получить сообщения в чате
-        return messages.filter { it.idChat == idChat }
+        return messages
+            .asSequence()
+            .filter { it.idChat == idChat }
+            .toList()
     }
 
     fun deleteMassage(userId: Int, idMessage: Int){ //удалять сообщения можно только из тех чатов, которые сам создавал
