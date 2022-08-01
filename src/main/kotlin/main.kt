@@ -1,4 +1,9 @@
 import java.time.LocalDateTime
+private var messages = emptyArray<Messages>()
+private var lastIdMess: Int = 0
+private var chats = emptyArray<Chats>()
+private var lastIdChat: Int = 0
+
 
 fun main() {
 
@@ -25,8 +30,8 @@ data class Messages(
 )
 
 class ChatService(){
-    private var chats = emptyArray<Chats>()
-    private var lastId: Int = 0
+    //private var chats = emptyArray<Chats>()
+    //private var lastIdChat: Int = 0
 
     fun getUnreadChatsCount(userId: Int): Int { //получить число не прочитанных чатов для пользователя с userId
         val chatsList = chats.filter { (it.ownerId == userId || it.idOpponent == userId) && it.countMessages>0 }
@@ -49,9 +54,9 @@ class ChatService(){
     }
 
     fun addChat(ownerId:Int, idOpponent: Int):Int{ //добавить чат
-        lastId += 1
-        chats += Chats(id=lastId,ownerId = ownerId, idOpponent = idOpponent)
-        return lastId
+        lastIdChat += 1
+        chats += Chats(id=lastIdChat,ownerId = ownerId, idOpponent = idOpponent)
+        return lastIdChat
     }
 
     fun addMessageInChat(idChat:Int){ //добавить сообщение в чат
@@ -89,8 +94,9 @@ class ChatService(){
 }
 
 class MessagesService(){
-    private var messages = emptyArray<Messages>()
-    private var lastId: Int = 0
+    //private var messages = emptyArray<Messages>()
+    //private var lastIdMess: Int = 0
+    //private var chatService = ChatService()
 
     fun getUnreadMessagesCount(idChat: Int, userId: Int): Int { //получить число непрочитанных сообщений внутри чата для ползователя c userId
         return messages.filter { it.idUser!=userId && it.idChat == idChat && !it.isRead && !it.isDeleted}.size
@@ -115,8 +121,8 @@ class MessagesService(){
 
     fun getListMessages(idChat: Int,userId: Int, fromIdMessage: Int, countMessages: Int, readerId: Int): List<Messages> { //получить и прочитать список сообщений
         var count = countMessages
-        if (fromIdMessage + countMessages > lastId) {
-            count = fromIdMessage + countMessages - lastId
+        if (fromIdMessage + countMessages > lastIdMess) {
+            count = fromIdMessage + countMessages - lastIdMess
         }
             val listMessages =
                 messages.filter { it.idChat == idChat && it.id >= fromIdMessage && it.id <= fromIdMessage + count - 1 }
@@ -131,21 +137,21 @@ class MessagesService(){
         val currMessage:Messages
         if (idChat == 0) {//чат еще не создан
             val chatId = ChatService().addChat(ownerId = senderId, idOpponent = idOpponent)
-            lastId += 1
-            currMessage = Messages(idUser = senderId, id = lastId, idChat = chatId, text = text)
+            lastIdMess += 1
+            currMessage = Messages(idUser = senderId, id = lastIdMess, idChat = chatId, text = text)
             messages += currMessage
-            ChatService().addMessageInChat(currMessage.idChat)
-            return lastId
+            ChatService().addMessageInChat(chatId)
+            return lastIdMess
         } else { //нужно проверить куда поставить ownerId и idOpponent
             val currChat = ChatService().getChat(idChat)
-            lastId += 1
+            lastIdMess += 1
             currMessage = when (senderId) {
-                currChat.ownerId -> Messages(idUser = senderId, id = lastId, idChat = idChat, text = text)
-                else -> Messages(idUser = idOpponent, id = lastId, idChat = idChat, text = text)
+                currChat.ownerId -> Messages(idUser = senderId, id = lastIdMess, idChat = idChat, text = text)
+                else -> Messages(idUser = idOpponent, id = lastIdMess, idChat = idChat, text = text)
                 }
             messages += currMessage
-            ChatService().addMessageInChat(currMessage.idChat)
-            return lastId
+            ChatService().addMessageInChat(idChat)
+            return lastIdMess
         }
     }
     fun getMessagesOnChat(idChat: Int): List<Messages> { // получить сообщения в чате
@@ -155,15 +161,15 @@ class MessagesService(){
     fun deleteMassage(userId: Int, idMessage: Int){ //удалять сообщения можно только из тех чатов, которые сам создавал
         val currMessage: Messages? = messages.find {it.idUser ==userId && it.id == idMessage && !it.isDeleted}
         if (currMessage != null) {
-            val chat: Chats? = ChatService().getChat(currMessage.idChat)
-            if (chat != null) {
+            val chat: Chats = ChatService().getChat(currMessage.idChat)
+            //if (chat != null) {
                 if (userId == chat.ownerId || userId == chat.idOpponent) {
                     currMessage.isDeleted = true
                     ChatService().deleteMessageInChat(currMessage.idChat)
                 } else {
                     println("Удалять сообщения из чужих чатов нельзя!")
                 }
-            }
+            //}
         } else {
             println("Сообщение с id $idMessage не найдено")
         }
